@@ -92,8 +92,6 @@ class User:
         return self._balance >= amount
 
     
-
-
 class MLModel:
     def __init__(self, id: int, price: int):
         self._id = id
@@ -110,7 +108,7 @@ class MLModel:
         5. ИНН
         Далее планируется перевод в csv-файл и отправка конечного ответа пользователю
         Возможные модели: FRED-T5-large-ods-ner-2023 (вес около 3.3Гб), 
-        LightOnOCR-1B-1025 (вес около 3Гб, можно применить квантизацию)
+        LightOnOCR-1B-1025 (вес около 3Гб)
         """
 
 class MLTask:
@@ -122,16 +120,16 @@ class MLTask:
     def status():
         """
         Функция возвращает следующие статусы:
-            Выполнено, если файл сгенерирован и отправлен пользователю.
-            В процессе обработки, если файл загружен пользователем и находится в процессе обработки
-            Файл готов к обработке, если файл загружен пользователем
-            Загрузите файл, если не указан путь (path) к файлу
+            -'Выполнено', если файл сгенерирован и отправлен пользователю
+            -'В процессе обработки', если файл загружен пользователем и находится в процессе обработки
+            -'Файл готов к обработке', если файл загружен пользователем
+            -'Загрузите файл', если не указан путь (path) к файлу
         """
         pass
 
     def process():
         """
-        Функция осуществляет проверку статуса задачи и запускает обработку, если статус Файл готов к обработке
+        Функция осуществляет проверку статуса задачи и запускает обработку, если статус = 'Файл готов к обработке'
         """
         pass
 
@@ -139,7 +137,7 @@ class Transaction:
     def __init__(self, user: User, mltask: MLTask):
         self._user = user # Ссылка на пользователя
         self._mltask = mltask # Ссылка на ml-задачу
-        self.created_at: datetime = datetime.now()
+        self.created_at: datetime = datetime.now() # Дата и время транзакции
     
     def apply(self):
         raise NotImplementedError('Функция должна быть переопределена')
@@ -165,11 +163,7 @@ class AddTransaction(Transaction):
             return False
         self._user._balance += amount
         return True
-    
-user1 = User(1, 'tkhth', 'khtjtt', '12mymy3', 8)
-trans1 = DebitTransaction(user1, 'rec')
-trans1.apply(1)
-print(trans1.created_at)
+
 
 
 
