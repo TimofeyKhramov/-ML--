@@ -15,11 +15,10 @@ services:
       timeout: 10s
       retries: 3
       start_period: 20s
-    networks:
-      - event-planner-network
+
   
   web-proxy:
-      image: nginx:latest
+      image: nginx:1.29-alpine
       container_name: event-planner-nginx
       restart: unless-stopped
       ports:
@@ -31,20 +30,18 @@ services:
       volumes:
         - ./web-proxy/nginx.conf:/etc/nginx/nginx.conf
         # - ./nginx/ssl:/etc/nginx/ssl
-      networks:
-        - event-planner-network
+     
   
   rabbitmq:
       image: rabbitmq:4.2.5-management-alpine
       container_name: container-rabbitmq
-      restart: unless-stopped
+      restart: on-failure
       ports:
-        - "5672"
+        - "5672:5672"
         - "15672:15672"
       volumes:
-        - ./rabbitmq_data:/var/lib/rabbitmq
-      networks:
-        - event-planner-network
+        - rabbitmq_volume:/var/lib/rabbitmq
+    
   
   database:
       image: postgres:16-alpine
@@ -53,12 +50,10 @@ services:
       - ./database/.env
       restart: unless-stopped
       volumes:
-        - ./postgres_data:/var/lib/postgresql/data # Локальная папка не удаляется при удалении контейнера
-  
-      networks:
-        - event-planner-network
-  
-networks:
-  event-planner-network:
-    name: event-planner-network
-    driver: bridge
+        - postgres_volume:/var/lib/postgresql/data 
+
+
+volumes:
+    rabbitmq_volume:    
+    postgres_volume:
+
