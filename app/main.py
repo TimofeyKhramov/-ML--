@@ -1,65 +1,57 @@
-from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import JSONResponse
-from typing import Dict
-import src.classes
-import uvicorn
-import logging
+from database.config import get_settings
+from database.database import get_session, init_db, get_database_engine
+from services.crud.user import *
+from sqlmodel import Session, create_engine, SQLModel
+from src.user import User
+from src.transaction import AddTransaction
+from src.mltask import MLTaskType
+from services.crud.mltask import create_mltask
 
-# Настройка логирования
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
-
-app = FastAPI(
-    title="Сервисное API",
-    description="API для управления событиями",
-    version="1.0.0"
-)
-
-@app.get("/", response_model=Dict[str, str])
-async def index() -> Dict[str, str]:
-    """
-    Корневой эндпоинт, возвращающий приветственное сообщение с информацией о пользователе.
+if __name__ == "__main__":
+    settings = get_settings()
+    print(settings.APP_NAME)
+    print(settings.API_VERSION)
+    print(f'Debug: {settings.DEBUG}')
     
-    Returns:
-        Dict[str, str]: Приветственное сообщение с информацией о пользователе
-    """
-    try:
-        user = src.classes.User(id=1, email="Nick@gmail.com", password="12345678")
-        logger.info(f"Успешное выполнение маршрута index для пользователя: {user}")
-        return {"message": f"Hello world! User: {user}"}
-    except Exception as e:
-        logger.error(f"Ошибка в маршруте index: {str(e)}")
-        raise HTTPException(status_code=500, detail="Внутренняя ошибка сервера")
-
-@app.get("/health")
-async def health_check() -> Dict[str, str]:
-    """
-    Эндпоинт проверки работоспособности для мониторинга.
+    print(settings.DB_HOST)
+    print(settings.DB_NAME)
+    print(settings.DB_USER)
     
-    Returns:
-        Dict[str, str]: Сообщение о статусе
-    """
-    logger.info("Эндпоинт health_check успешно вызван")
-    return {"status": "healthy"}
+    init_db(drop_all=True)
+    print('Init db has been success')
+    ml_task_cheque = MLTaskType(id=1, name='Cheque_analyzing', cost=25, description='Info from cheque') # создаём ML-задачу
+    ml_task_cv = MLTaskType(id=2, name='Computer_vision', cost=15, description='Read images')
+    
+    test_user = User(login='te~st1@gmail.c', password='15000000' ) # создаём пользователя
+    test_user_2 = User(login='test2@gmail.com', password='6793u')
+    test_user_3 = User(login='test3@gmail.com', password='y474686')
+    
+    engine = get_database_engine()
+    
+    with Session(engine) as session:
+        create_user(test_user, session) # создаём пользователя в БД
+        create_mltask(ml_task_cheque, session) # создаём ML-задачу в БД
+        create_mltask(ml_task_cv, session)
+        create_user(test_user_2, session)
+        create_user(test_user_3, session)
+        add_balance(user_id=1, amount=50, session=session) # здесь же создаётся AddTransaction для пользователя
+        add_balance(user_id=2, amount=60, session=session) 
+        add_balance(user_id=3, amount=20, session=session)
+        debit_balance(user_id=1, ml_task_type='Cheque_analyzing', session=session) # здесь же создаётся DebitTransaction для пользователя
+        debit_balance(user_id=2, ml_task_type='Cheque_analyzing',session=session) 
+        debit_balance(user_id=3, ml_task_type='Computer_vision',session=session) 
+        balance2 = get_user_balance(user_id=2, session=session) # получаем баланс пользователя
+        balance3 = get_user_balance(user_id=3, session=session)
+        users = get_all_users(session) # получаем всех пользователей
+        all_user_transactions = get_user_all_transactions(user_id=1, session=session) # здесь происходит объединение транзакций пользователя, сортировка по дате создания транзакции
 
-# Обработчики ошибок
-@app.exception_handler(HTTPException)
-async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
-    logger.warning(f"HTTPException: {exc.detail} для запроса {request.url}")
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={"detail": exc.detail}
-    )
 
-if __name__ == '__main__':
-    uvicorn.run(
-        'main:app',
-        host='0.0.0.0',
-        port=8080,
-        reload=True,
-        log_level="debug"
-    )
-
+    print('-------')
+    print('Пользователи из БД:')        
+    for user in users:
+        print(user)
+    print('-------')
+    print('Транзакции пользоватея с ID=1:')     
+    for t in all_user_transactions:
+        print(t)
+    
