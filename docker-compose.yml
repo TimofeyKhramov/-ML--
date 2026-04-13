@@ -4,7 +4,7 @@ services:
     build: ./app/
     image: event-planner-api:latest
     container_name: event-planner-api
-    restart: no
+    restart: unless-stopped
     depends_on:
       - database
     env_file:
