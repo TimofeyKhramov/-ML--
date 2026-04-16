@@ -12,7 +12,6 @@ if TYPE_CHECKING:
 class User(SQLModel, table=True):
     id: int = Field(primary_key=True)
     login: str = Field(
-        ...,  # Required field
         unique=True,
         index=True,
         min_length=5,

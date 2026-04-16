@@ -56,7 +56,7 @@ def get_user_by_login(login: str, session: Session) -> Optional[User]:
         Optional[User]: Found user or None
     """
     try:
-        statement = select(User).options(
+        statement = select(User).where(User.login == login).options(
             selectinload(User.add_transactions).selectinload(AddTransaction.creator),
             selectinload(User.debit_transactions).selectinload(DebitTransaction.creator))
         user = session.exec(statement).first()
@@ -138,7 +138,7 @@ def add_balance(user_id: int, amount: int, session: Session) -> User:
         # Сохраняем всё в БД
         session.add(transaction)
         session.commit()
-        session.refresh(user)
+        # session.refresh(user)
         return user
         
     except Exception as e:
@@ -177,7 +177,7 @@ def debit_balance(
         user.balance -= total_cost
         session.add(transaction)
         session.commit()
-        session.refresh(user)
+        # session.refresh(user)
         return user
         
     except Exception as e:
