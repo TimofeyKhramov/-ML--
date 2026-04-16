@@ -22,7 +22,7 @@ if __name__ == "__main__":
     ml_task_cheque = MLTaskType(id=1, name='Cheque_analyzing', cost=25, description='Info from cheque') # создаём ML-задачу
     ml_task_cv = MLTaskType(id=2, name='Computer_vision', cost=15, description='Read images')
     
-    test_user = User(login='te~st1@gmail.c', password='15000000' ) # создаём пользователя
+    test_user = User(login='test1@gmail.com', password='15000000' ) # создаём пользователя
     test_user_2 = User(login='test2@gmail.com', password='6793u')
     test_user_3 = User(login='test3@gmail.com', password='y474686')
     

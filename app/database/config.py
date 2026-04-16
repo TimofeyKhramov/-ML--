@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     DB_USER: Optional[str] = None
     DB_PASS: Optional[str] = None
     DB_NAME: Optional[str] = None
+    APP_DESCRIPTION: Optional[str] = None
     
     # Application settings
     APP_NAME: Optional[str] = None
