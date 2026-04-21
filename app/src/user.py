@@ -8,6 +8,7 @@ import re
 if TYPE_CHECKING:
     from src.transaction import AddTransaction
     from src.transaction import DebitTransaction
+    from src.mltask import MLTaskHistory
 
 class User(SQLModel, table=True):
     id: int = Field(primary_key=True)
@@ -18,7 +19,7 @@ class User(SQLModel, table=True):
         max_length=50
     )
     
-    password: str = Field(..., min_length=6, max_length=128)
+    password: str = Field(..., min_length=5, max_length=128)
     balance: int = Field(default=0)
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
@@ -26,19 +27,32 @@ class User(SQLModel, table=True):
         back_populates="creator",
         sa_relationship_kwargs={
             "cascade": "all, delete-orphan",
-            "lazy": "selectin"
+            "lazy": "selectin", "order_by": "desc(AddTransaction.created_at)"
         })
     
     debit_transactions: List["DebitTransaction"] = Relationship(
         back_populates="creator",
         sa_relationship_kwargs={
             "cascade": "all, delete-orphan",
-            "lazy": "selectin"
+            "lazy": "selectin", "order_by": "desc(DebitTransaction.created_at)"
         }
         )
+    
+    ml_history: List["MLTaskHistory"] = Relationship(
+        back_populates="user",
+        sa_relationship_kwargs={
+            "cascade": "all, delete-orphan",
+            "lazy": "selectin"
+        }
+    )
    
     def __str__(self) -> str:
         return f"Id: {self.id}. Login: {self.login}. Balance: {self.balance} {self.password}"
+    
+    class Config:
+        """Model configuration"""
+        validate_assignment = True
+        arbitrary_types_allowed = True
     
     
 

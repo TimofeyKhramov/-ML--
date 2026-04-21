@@ -3,7 +3,7 @@ from sqlmodel import Session, select
 from sqlalchemy.orm import selectinload
 from typing import List, Optional, Union
 from src.transaction import AddTransaction, DebitTransaction
-from src.mltask import MLTaskType
+from src.mltask import MLTaskType, MLTaskHistory
 
 def get_all_users(session: Session) -> List[User]:
     """
@@ -106,12 +106,32 @@ def delete_user(user_id: int, session: Session) -> bool:
         session.rollback()
         raise
 
+def delete_number_of_users(user_id: List[int], session: Session) -> bool:
+    """
+    Delete user by ID.
+    
+    Args:
+        user_id: User ID to delete
+        session: Database session
+    
+    Returns:
+        bool: True if deleted, False if not found
+    """
+    try:
+        for i in range(len(user_id)):
+            user = get_user_by_id(user_id[i], session)
+            if user:
+                session.delete(user)
+        session.commit()        
+        return True
+    except Exception as e:
+        session.rollback()
+        raise
+
 
 def get_user_balance(user_id: int, session: Session) -> int:
    
     user = get_user_by_id(user_id, session)
-    if not user:
-        raise ValueError(f"Пользователь с id {user_id} не найден")
     return user.balance
 
 def add_balance(user_id: int, amount: int, session: Session) -> User:
@@ -119,7 +139,7 @@ def add_balance(user_id: int, amount: int, session: Session) -> User:
     try:
         # Валидация суммы
         if amount <= 0:
-            raise ValueError(f"Сумма должна быть больше 0, получено: {amount}")
+            raise ValueError(f"Сумма пополнения должна быть больше 0, получено: {amount}")
         
         # Получаем пользователя
         user = get_user_by_id(user_id, session)
@@ -139,7 +159,7 @@ def add_balance(user_id: int, amount: int, session: Session) -> User:
         session.add(transaction)
         session.commit()
         # session.refresh(user)
-        return user
+        return get_user_by_id(user_id, session)
         
     except Exception as e:
         session.rollback()
@@ -149,16 +169,13 @@ def debit_balance(
     user_id: int, 
     session: Session, 
     ml_task_type: str,  
-    description: str = None
-) -> None:
+    description: str = None,
+) -> User:
     try:
-        
-        if not MLTaskType.is_valid(session, ml_task_type):
-            raise ValueError(f"В настоящий момент ML-задача {ml_task_type} не поддерживается")
         
         user = get_user_by_id(user_id, session)
         if not user:
-            raise ValueError(f"Пользователь с id {user_id} не найден")
+            raise ValueError(f"Пользователь с ID = {user_id} не найден")
         
         total_cost = MLTaskType.get_cost(session, ml_task_type)
         
@@ -167,6 +184,8 @@ def debit_balance(
                 f"Не хватает средств. Текущий баланс: {user.balance}, "
                 f"Сумма, необходимая для выполнения операции: {total_cost} "
             )
+        
+        
         
         transaction = DebitTransaction(
             ml_task_type=ml_task_type, 
@@ -178,63 +197,26 @@ def debit_balance(
         session.add(transaction)
         session.commit()
         # session.refresh(user)
-        return user
+        return get_user_by_id(user_id, session)
         
     except Exception as e:
         session.rollback()
         raise
 
-def get_all_add_transactions(session: Session) -> List[AddTransaction]:
-    """Получить все транзакции пополнения"""
-    statement = select(AddTransaction).order_by(AddTransaction.created_at.desc())
-    return session.exec(statement).all()
+def get_user_add_transactions(user_id: int, session: Session):
+    user = get_user_by_id(user_id, session)
+    return user.add_transactions
 
-def get_all_debit_transactions(session: Session) -> List[DebitTransaction]:
-    """Получить все транзакции списания"""
-    statement = select(DebitTransaction).order_by(DebitTransaction.created_at.desc())
-    return session.exec(statement).all()
+def get_user_debit_transactions(user_id: int, session: Session):
+    user = get_user_by_id(user_id, session)
+    return user.debit_transactions
 
-def get_user_add_transactions(user_id: int, session: Session) -> List[AddTransaction]:
-    """Получить все пополнения пользователя"""
-    statement = select(AddTransaction).where(
-        AddTransaction.creator_id == user_id
-    ).order_by(AddTransaction.created_at.desc())
-    return session.exec(statement).all()
+def get_user_all_transactions(user_id: int, session: Session):
+    user = get_user_by_id(user_id, session)
+    return sorted(user.debit_transactions+user.add_transactions, key=lambda x: x.created_at, reverse=True)
 
-def get_user_debit_transactions(user_id: int, session: Session) -> List[DebitTransaction]:
-    """Получить все списания пользователя"""
-    statement = select(DebitTransaction).where(
-        DebitTransaction.creator_id == user_id
-    ).order_by(DebitTransaction.created_at.desc())
-    return session.exec(statement).all()
+def get_user_ml_predictions(user_id: int, session: Session):
+    user = get_user_by_id(user_id, session)
+    return user.mlhistory
 
-def get_user_all_transactions(user_id: int, session: Session) -> List[Union[AddTransaction, DebitTransaction]]:
-    """
-    Получить все транзакции пользователя (пополнения + списания).
-    
-    Args:
-        user_id: ID пользователя
-        session: Сессия БД
-    
-    Returns:
-        List[Union[AddTransaction, DebitTransaction]]: Объединённый список транзакций,
-        отсортированный по дате создания (сначала новые)
-    """
-    # Получаем пополнения
-    add_statement = select(AddTransaction).where(
-        AddTransaction.creator_id == user_id
-    )
-    add_transactions = session.exec(add_statement).all()
-    
-    # Получаем списания
-    debit_statement = select(DebitTransaction).where(
-        DebitTransaction.creator_id == user_id
-    )
-    debit_transactions = session.exec(debit_statement).all()
-    
-    # Объединяем и сортируем
-    all_transactions = add_transactions + debit_transactions
-    all_transactions.sort(key=lambda x: x.created_at, reverse=True)
-    
-    return all_transactions
 

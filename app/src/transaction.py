@@ -61,9 +61,7 @@ class AddTransaction(Transaction, table=True):
 #     image: Optional[str] = None
 #     description: Optional[str] = None
 
-# class Config:
-#     """Model configuration"""
-#     validate_assignment = True
+
 
 class DebitTransaction(Transaction, table=True):
     # __tablename__ = "debit_transactions"
@@ -82,3 +80,9 @@ class DebitTransaction(Transaction, table=True):
     def __str__(self) -> str:
         result = (f"Id: {self.id}. Type: {self.type_of}. Creator: {self.creator.login}. Amount: {self.amount}. Date: {self.created_at}")
         return result
+    
+
+class Config:
+    """Model configuration"""
+    validate_assignment = True
+    arbitrary_types_allowed = True
