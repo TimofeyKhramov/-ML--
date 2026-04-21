@@ -1,6 +1,8 @@
 from sqlmodel import SQLModel, Field, Relationship, Session, select
 from pydantic import field_validator
 from typing import Optional, List, TYPE_CHECKING
+from src.user import User
+from datetime import datetime
 
 class MLTaskType(SQLModel, table=True):
     """Таблица типов ML задач в БД"""
@@ -30,7 +32,7 @@ class MLTaskType(SQLModel, table=True):
         result = session.exec(statement).first()
         
         if not result:
-            raise ValueError(f"ML task type '{ml_task_type}' not found in database")
+            raise ValueError(f"ML-задача {ml_task_type} не найдена")
         
         return result.cost
     
@@ -38,7 +40,12 @@ class MLTaskType(SQLModel, table=True):
     def is_valid(cls, session: Session, ml_task_type: str) -> bool:
         """Проверить, существует ли тип задачи в БД"""
         statement = select(cls).where(cls.name == ml_task_type)
-        return session.exec(statement).first() is not None
+        result =  session.exec(statement).first() 
+
+        if result is None:
+            raise ValueError(f"ML-задача {ml_task_type} не найдена")
+    
+        return True
     
     @classmethod
     def get_all_types(cls, session: Session) -> List[str]:
@@ -48,3 +55,22 @@ class MLTaskType(SQLModel, table=True):
     
     def __str__(self) -> str:
         return f"Id: {self.id}. Name: {self.name}. Price: {self.cost}"
+    
+    class Config:
+        """Model configuration"""
+        validate_assignment = True
+        arbitrary_types_allowed = True
+
+
+class MLTaskHistory(SQLModel, table=True):
+    __tablename__ = "ml_tasks_history"
+    
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="user.id")
+    ml_task_type: str = Field()
+    input_data: Optional[str] = Field(default=None)  # Что отправил пользователь
+    result: Optional[str] = Field(default=None)      # Результат предсказания                          # Стоимость операции
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    
+    # Связь с пользователем
+    user: Optional[User] = Relationship(back_populates="ml_history")
