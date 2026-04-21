@@ -55,7 +55,7 @@ async def predict(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"User with id {user_id} not found"
             )
-        # Здесь добавьте вашу логику предсказания
+       
         
         
         logger.info(f"ML task '{mltasktype}' completed for user {user_id}")
@@ -83,3 +83,30 @@ async def predict(
             detail="Internal server error"
         )
     
+
+@mltask_route.get(
+    "/history",
+    summary="Get user prediction history ",
+    response_description="User predictions"
+)
+async def get_user_ml_predictions(user_id: int, session=Depends(get_session)):
+    try:
+        user = UserService.get_user_by_id(user_id, session)
+        if not user:
+            logger.warning(f"User {user_id} not found"),
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Пользователь с ID {user_id} не найден"
+            )
+        predictions = user.ml_history
+        logger.info(f"User with ID = {user_id} add transactions retrieved successfully")
+        return predictions
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting add transactions for user {user_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal server error"
+        )

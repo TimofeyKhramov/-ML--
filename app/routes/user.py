@@ -184,7 +184,7 @@ async def get_user_all_transactions(user_id: int, session=Depends(get_session)):
             detail="Internal server error"
         )
 
-
+    
 #POST-ЗАПРОСЫ
 @user_route.post(
     '/signup',

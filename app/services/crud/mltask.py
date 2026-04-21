@@ -57,8 +57,7 @@ def ml_prediction(user_id, ml_task_type, input_data,  session: Session):
             user_id=user_id,
              ml_task_type=ml_task_type,
             input_data=input_data,
-
-            prediction_result=prediction_result,
+            result=prediction_result,
         )
     session.add(history)
         
