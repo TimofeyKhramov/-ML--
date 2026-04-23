@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     from src.transaction import DebitTransaction
     from src.mltask import MLTaskHistory
 
+
 class User(SQLModel, table=True):
     id: int = Field(primary_key=True)
     login: str = Field(

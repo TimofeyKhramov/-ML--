@@ -77,6 +77,19 @@ services:
     networks:
       - event-planner-network
 
+  # ollama:
+  #   image: alpine/ollama:latest
+  #   container_name: gemma-server
+  #   ports:
+  #     - "11434:11434"
+  #   volumes:
+  #     - ollama_volume:/var/lib/ollama
+  #   restart: unless-stopped
+  #   environment:
+  #     - OLLAMA_MODELS=qwen2.5:0.5b
+  #   networks:
+  #     - event-planner-network
+
   database:
       image: postgres:16-alpine
       container_name: container-database
@@ -96,12 +109,26 @@ services:
       networks:
       - event-planner-network
 
-
+  # ml_worker:
+  #     build: ./ml_worker/
+  #     image: event-planner-ml-worker:latest
+  #     container_name: event-planner-ml-worker
+  #     restart: unless-stopped
+  #     volumes:
+  #       - ./ml_worker:/app
+  #     depends_on:
+  #       db:
+  #         condition: service_started
+  #       rabbitmq:
+  #         condition: service_healthy
+  #     networks:
+  #       - event-planner-network
 volumes:
   rabbitmq_volume:
-    name: rabbitmq_volume  
   postgres_volume:
-    name: postgres_volume
+  ollama_volume:
+  mlworker_volume:
+   
 
 networks:
   event-planner-network:

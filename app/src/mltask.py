@@ -1,8 +1,23 @@
 from sqlmodel import SQLModel, Field, Relationship, Session, select
-from pydantic import field_validator
+from enum import Enum
+from pydantic import field_validator, BaseModel
 from typing import Optional, List, TYPE_CHECKING
 from src.user import User
 from datetime import datetime
+
+if TYPE_CHECKING:
+    from src.user import User
+
+class TaskStatus(str, Enum):
+    """Статусы выполнения ML задачи"""
+    NEW = "new"              # Новая задача
+    QUEUED = "queued"        # В очереди на выполнение
+    PROCESSING = "processing" # В процессе обработки
+    COMPLETED = "completed"   # Выполнена
+    FAILED = "failed"  
+
+
+
 
 class MLTaskType(SQLModel, table=True):
     """Таблица типов ML задач в БД"""
@@ -53,6 +68,8 @@ class MLTaskType(SQLModel, table=True):
         statement = select(cls.name)
         return session.exec(statement).all()
     
+    
+    
     def __str__(self) -> str:
         return f"Id: {self.id}. Name: {self.name}. Price: {self.cost}"
     
@@ -61,16 +78,36 @@ class MLTaskType(SQLModel, table=True):
         validate_assignment = True
         arbitrary_types_allowed = True
 
+    
+
 
 class MLTaskHistory(SQLModel, table=True):
     __tablename__ = "ml_tasks_history"
     
     id: Optional[int] = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="user.id")
-    ml_task_type: str = Field()
-    input_data: Optional[str] = Field(default=None)  # Что отправил пользователь
     result: Optional[str] = Field(default=None)      # Результат предсказания                          # Стоимость операции
     created_at: datetime = Field(default_factory=datetime.utcnow)
     
     # Связь с пользователем
     user: Optional[User] = Relationship(back_populates="ml_history")
+
+class MLTaskCreate(BaseModel):
+    id: int  # или Optional[int]
+    name: str
+    cost: int
+    description: Optional[str] = None
+    question: str
+    user_id: int
+    status: TaskStatus
+    
+    def to_queue_message(self, history_id: int) -> dict:
+        return {
+            "task_id": history_id,  # теперь это точно int
+            "question": self.question,
+        }
+
+class MLTaskUpdate(MLTaskType):
+    """DTO для обновления существующей ML задачи"""
+    status: Optional[TaskStatus] = None
+    result: Optional[str] = None

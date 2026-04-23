@@ -1,45 +1,56 @@
+from rmq.rmqconf import RabbitMQConfig
+from rmq.rmqworker import MLWorker
+import sys
 import pika
 import time
 import logging
 
+# Настраиваем базовую конфигурацию логирования
 logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.DEBUG,  # Устанавливаем уровень логирования DEBUG
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'  # Задаем формат сообщений лога
 )
 
 logger = logging.getLogger(__name__)
-# Настройка логирования 
 
-connection_params = pika.ConnectionParameters(
-    host='rabbitmq',  # Замените на адрес вашего RabbitMQ сервера
-    port=5672,          # Порт по умолчанию для RabbitMQ
-    virtual_host='/',   # Виртуальный хост (обычно '/')
-    credentials=pika.PlainCredentials(
-        username='guest1',  # Имя пользователя по умолчанию
-        password='guest1'   # Пароль по умолчанию
-    ),
-    heartbeat=30,
-    blocked_connection_timeout=2
-)
+def create_worker(mode: str, config: RabbitMQConfig):
+    """Create appropriate worker instance based on mode."""
+    return MLWorker(config) 
 
-connection = pika.BlockingConnection(connection_params)
-channel = connection.channel()
-queue_name = 'ml_task_queue'
-channel.queue_declare(queue=queue_name)  # Создание очереди (если не существует)
+def run_worker(worker):
+    """Run worker with reconnection logic."""
+    while True:
+        try:
+            if not worker.connection or not worker.connection.is_open:
+                logger.info("Connecting to RabbitMQ...")
+                worker.connect()
+            
+            logger.info("Starting message consumption...")
+            worker.start_consuming()
+            
+        except pika.exceptions.AMQPConnectionError as e:
+            logger.error(f"Connection error: {e}")
+            logger.info("Retrying in 5 seconds...")
+            time.sleep(5)
+        except Exception as e:
+            logger.error(f"Unexpected error: {e}")
+            raise
+        
+        time.sleep(1)
 
+def main():
+    mode = 'ml' # Можно использовать rpc
+    logger.info(f"Starting worker in {mode} mode")
+    
+    worker = None
+    try:
+        config = RabbitMQConfig()
+        worker = create_worker(mode, config)
+        run_worker(worker)
+    except Exception as e:
+        logger.error(f"Application error: {e}")
+        return 1
+    return 0
 
-# Функция, которая будет вызвана при получении сообщения
-def callback(ch, method, properties, body):
-    time.sleep(3) # Имитация полезной работы
-    logger.info(f"Received: '{body}'")
-    ch.basic_ack(delivery_tag=method.delivery_tag) # Ручное подтверждение обработки сообщения
-
-# Подписка на очередь и установка обработчика сообщений
-channel.basic_consume(
-    queue=queue_name,
-    on_message_callback=callback,
-    auto_ack=False  # Автоматическое подтверждение обработки сообщений
-)
-
-logger.info('Waiting for messages. To exit, press Ctrl+C')
-channel.start_consuming()
+if __name__ == "__main__":
+    sys.exit(main())
