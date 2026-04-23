@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, status, Depends
 from  database.database import get_session
 from src.user import User
+from src.u_s import UserCreate
 from services.crud import user as UserService
 from typing import List, Dict
 from src.mltask import MLTaskType
@@ -192,7 +193,7 @@ async def get_user_all_transactions(user_id: int, session=Depends(get_session)):
     status_code=status.HTTP_201_CREATED,
     summary="User Registration",
     description="Register a new user with login and password")
-async def signup(data: User, session=Depends(get_session)) -> Dict[str, str]:
+async def signup(data: UserCreate, session=Depends(get_session)) -> Dict[str, str]:
  
     try:
         if UserService.get_user_by_login(data.login, session):

@@ -43,24 +43,27 @@ def get_all_mltasks(session: Session) -> List[MLTaskType]:
     except Exception as e:
         raise
 
-def ml_prediction(user_id, ml_task_type, input_data,  session: Session):
-    if not MLTaskType.is_valid(session, ml_task_type):
-        raise ValueError
-        
+def get_mltask_by_id(mltask_id: int, session: Session):
+    try:
+        statement = select(MLTaskType).where(MLTaskType.id == mltask_id)
+        mltask = session.exec(statement).first()
+        return mltask
+    except Exception as e:
+        raise
+
+
+
+def ml_prediction(user_id,  session: Session):
+   
     user = UserService.get_user_by_id(user_id, session)
     if not user:
         raise ValueError(f"Пользователь с ID = {user_id} не найден")
     
-    prediction_result = '123'
-
     history = MLTaskHistory(
             user_id=user_id,
-             ml_task_type=ml_task_type,
-            input_data=input_data,
-            result=prediction_result,
         )
     session.add(history)
         
     session.commit()
-    return prediction_result
+    return history
 
