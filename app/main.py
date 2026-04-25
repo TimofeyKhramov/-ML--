@@ -19,8 +19,8 @@ if __name__ == "__main__":
     
     init_db(drop_all=True)
     print('Init db has been success')
-    ml_task_cheque = MLTaskType(id=1, name='Cheque_analyzing', cost=25, description='Info from cheque') # создаём ML-задачу
-    ml_task_cv = MLTaskType(id=2, name='Computer_vision', cost=15, description='Read images')
+    ml_task_cheque = MLTaskType(id=1, name='Чат с LLM', cost=30, description='Пользователь может задавать любые вопросы LLM модели Qwen2.5:1.5b') # создаём ML-задачу
+    ml_task_cv = MLTaskType(id=2, name='Медицинское предсказание', cost=20, description='Пользователь может ввести параметры ткани и получить результат бинарной классфикации: 0 - здоровая ткань, 1 - воспалённая.')
     
     test_user = User(login='test1@gmail.com', password='15000000' ) # создаём пользователя
     test_user_2 = User(login='test2@gmail.com', password='6793u')
@@ -37,9 +37,9 @@ if __name__ == "__main__":
         add_balance(user_id=1, amount=50, session=session) # здесь же создаётся AddTransaction для пользователя
         add_balance(user_id=2, amount=60, session=session) 
         add_balance(user_id=3, amount=20, session=session)
-        debit_balance(user_id=1, ml_task_type='Cheque_analyzing', session=session) # здесь же создаётся DebitTransaction для пользователя
-        debit_balance(user_id=2, ml_task_type='Cheque_analyzing',session=session) 
-        debit_balance(user_id=3, ml_task_type='Computer_vision',session=session) 
+        # debit_balance(user_id=1, ml_task_type='Cheque_analyzing', session=session) # здесь же создаётся DebitTransaction для пользователя
+        # debit_balance(user_id=2, ml_task_type='Cheque_analyzing',session=session) 
+        # debit_balance(user_id=3, ml_task_type='Computer_vision',session=session) 
         balance2 = get_user_balance(user_id=2, session=session) # получаем баланс пользователя
         balance3 = get_user_balance(user_id=3, session=session)
         users = get_all_users(session) # получаем всех пользователей

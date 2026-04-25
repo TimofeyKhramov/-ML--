@@ -185,13 +185,12 @@ def debit_balance(
                 f"Сумма, необходимая для выполнения операции: {total_cost} "
             )
         
-        
-        
         transaction = DebitTransaction(
             ml_task_type=ml_task_type, 
             creator_id=user_id,
             amount = total_cost
         )
+        
         
         user.balance -= total_cost
         session.add(transaction)

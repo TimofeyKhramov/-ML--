@@ -15,6 +15,39 @@ user_route = APIRouter()
 
 
 # GET-ЗАПРОСЫ
+@user_route.get('/profile/{user_id}', response_model=User)
+async def get_profile(
+    user_id: int,
+    session = Depends(get_session)
+) -> User:
+    """
+    Get user profile by ID.
+    """
+    try:
+        user = UserService.get_user_by_id(user_id, session)
+        
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        
+        return User(
+            id=user.id,
+            login=user.login,
+            balance=user.balance,
+            created_at=user.created_at
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting profile: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error getting profile"
+        )
+    
 @user_route.get(
     "/get_all_users",
     response_model=List[User],
@@ -193,7 +226,7 @@ async def get_user_all_transactions(user_id: int, session=Depends(get_session)):
     status_code=status.HTTP_201_CREATED,
     summary="User Registration",
     description="Register a new user with login and password")
-async def signup(data: UserCreate, session=Depends(get_session)) -> Dict[str, str]:
+async def signup(data: User, session=Depends(get_session)) -> Dict[str, str]:
  
     try:
         if UserService.get_user_by_login(data.login, session):
@@ -221,7 +254,7 @@ async def signup(data: UserCreate, session=Depends(get_session)) -> Dict[str, st
         )
 
 @user_route.post('/signin')
-async def signin(data: User, session=Depends(get_session)) -> Dict[str, str]:
+async def signin(data: User, session=Depends(get_session)) -> Dict[str, object]:
 
     user = UserService.get_user_by_login(data.login, session)
     if user is None:
@@ -232,7 +265,7 @@ async def signin(data: User, session=Depends(get_session)) -> Dict[str, str]:
         logger.warning(f"Failed login attempt for user: {data.login}")
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Wrong password")
     
-    return {"message": "User signed in successfully"}
+    return {"message": "User signed in successfully", "user_id": user.id}
 
 @user_route.post(
     "/add_balance",

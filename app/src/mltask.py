@@ -8,17 +8,6 @@ from datetime import datetime
 if TYPE_CHECKING:
     from src.user import User
 
-class TaskStatus(str, Enum):
-    """Статусы выполнения ML задачи"""
-    NEW = "new"              # Новая задача
-    QUEUED = "queued"        # В очереди на выполнение
-    PROCESSING = "processing" # В процессе обработки
-    COMPLETED = "completed"   # Выполнена
-    FAILED = "failed"  
-
-
-
-
 class MLTaskType(SQLModel, table=True):
     """Таблица типов ML задач в БД"""
     __tablename__ = "ml_task_types"
@@ -93,21 +82,21 @@ class MLTaskHistory(SQLModel, table=True):
     user: Optional[User] = Relationship(back_populates="ml_history")
 
 class MLTaskCreate(BaseModel):
-    id: int  # или Optional[int]
+    id: int  
     name: str
     cost: int
     description: Optional[str] = None
-    question: str
+    question: Optional[str] = None
     user_id: int
-    status: TaskStatus
+    features: Optional[dict] = None
+
     
     def to_queue_message(self, history_id: int) -> dict:
         return {
-            "task_id": history_id,  # теперь это точно int
+            "task_id": history_id,  
+            "features": self.features,
+            "model": self.name,
             "question": self.question,
         }
 
-class MLTaskUpdate(MLTaskType):
-    """DTO для обновления существующей ML задачи"""
-    status: Optional[TaskStatus] = None
-    result: Optional[str] = None
+

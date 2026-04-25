@@ -1,10 +1,15 @@
-from rmq.rmqconf import RabbitMQConfig
 from llm import do_task
+from rmq.rmqconf import RabbitMQConfig
+from model import ModelService
 import pika
 import time
 import requests
 import logging
 import json
+import numpy as np
+import os
+
+
 
 
 # Настраиваем общий уровень логирования
@@ -35,11 +40,16 @@ class MLWorker:
         """
         # Сохраняем конфигурацию
         self.config = config
+        self.worker_id = os.getenv('WORKER_ID', 'unknown')
+        logger.info(f"Worker {self.worker_id} started")
         # Инициализируем соединение как None
         self.connection = None
         # Инициализируем канал как None
         self.channel = None
         self.retry_count = 0
+        self.model_service = ModelService()
+
+   
         
     def connect(self) -> None:
         """
@@ -79,7 +89,7 @@ class MLWorker:
             print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
             response = requests.post(
                 self.RESULT_ENDPOINT,
-                params={'task_id': history_id, 'result': result}
+                params={'task_id': history_id, 'result': result, 'status': 'success', 'worker': 'worker-'+self.worker_id} #
             )
             response.raise_for_status()
             return True
@@ -88,6 +98,7 @@ class MLWorker:
             return False
 
     def process_message(self, ch, method, properties, body):
+        
         """
         Обработка полученного сообщения из очереди.
         
@@ -103,23 +114,28 @@ class MLWorker:
         try:
             # Логируем информацию о полученном сообщении
             logger.info(f"Processing message: {body}")
-            
             # Декодируем bytes в строку и затем парсим JSON
             data = json.loads(body.decode('utf-8'))
             history_id = data['task_id']
-            # result = do_task(data['question'])
-            # print(result)
-            result='cev'
-            logger.info(f"Result: {result}")
-            # statement = select(MLTaskHistory).where(MLTaskHistory.id == history_id)
-            # history = self.session.exec(statement).first()
-                
-            if self.send_result(history_id=history_id, result=result):
+            if data.get('question') is not None:
+                result = do_task(data['question'])
+                logger.info(f"Result_LLM: {result}")
+
+            elif data.get('features') is not None:
+                features = data['features']  # словарь
+                if features is None:
+                    raise ValueError("No features in message")
+                result = self.model_service.predict(features)
+                logger.info(f"Result_kNN: {result}")
+
+            else:
+                raise ValueError("Neither question nor features provided in message")
+
+            if self.send_result(history_id=history_id, result=str(result)):
                 ch.basic_ack(delivery_tag=method.delivery_tag)
                 self.retry_count = 0
                 logger.info("Task completed successfully")
             else:
-                print('fvebebebeb')
                 raise Exception("Failed to send result")
            
                 
@@ -159,4 +175,3 @@ class MLWorker:
         finally:
             # Закрываем соединение при завершении работы
             self.cleanup()
-
