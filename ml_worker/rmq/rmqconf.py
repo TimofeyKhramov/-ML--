@@ -31,7 +31,7 @@ class RabbitMQConfig:
     rpc_queue_name: str = 'rpc_queue'
     
     # Параметры соединения
-    heartbeat: int = 30
+    heartbeat: int = 300
     connection_timeout: int = 2
 
     def get_connection_params(self) -> pika.ConnectionParameters:

@@ -2,11 +2,11 @@ from fastapi import APIRouter, HTTPException, status, Depends
 from  database.database import get_session
 from src.user import User
 from services.crud import user as UserService
-from typing import List, Dict
+from typing import List, Dict, Optional, Any
 from services.crud import mltask as MLtaskService
 import logging
 from sqlmodel import Session, update
-from src.mltask import MLTaskType, TaskStatus, MLTaskCreate, MLTaskHistory
+from src.mltask import MLTaskType,  MLTaskCreate, MLTaskHistory
 from services.rm.rm import rabbit_client
 
 # Configure logging
@@ -116,6 +116,14 @@ async def get_user_ml_predictions(user_id: int, session=Depends(get_session)):
             detail="Internal server error"
         )
     
+from pydantic import BaseModel
+
+class SendTaskRequest(BaseModel):
+    message: str = None
+    features: Optional[Dict[str, Any]] = None
+    mltask_id: int
+    user_id: int
+    question: Optional[str] = None
 
 @mltask_route.post(
     "/send_task", 
@@ -123,7 +131,7 @@ async def get_user_ml_predictions(user_id: int, session=Depends(get_session)):
     summary="ML endpoint",
     description="Send ml request"
 )
-async def send_task(message: str, question: str, mltask_id: int, user_id: int, session=Depends(get_session)) -> str:
+async def send_task(request:  SendTaskRequest, session=Depends(get_session)) -> str:
     """
     Root endpoint returning welcome message.
 
@@ -132,13 +140,56 @@ async def send_task(message: str, question: str, mltask_id: int, user_id: int, s
     """
     created_mltask = None
     try:
-        print(1)
-        mltask = MLtaskService.get_mltask_by_id(mltask_id, session)
-        created_mltask = MLTaskCreate(id=mltask.id, name=mltask.name, cost=mltask.cost, description=mltask.description, question=question, user_id=user_id, status=TaskStatus.NEW)
-        history = MLtaskService.ml_prediction(user_id, session)
+        mltask = MLtaskService.get_mltask_by_id(request.mltask_id, session)
+        if mltask is None:
+            
+            logger.error(f"ML task with id {request.mltask_id} not found")
+            raise HTTPException(
+                status_code=404, 
+                detail=f"ML task with id {request.mltask_id} not found"
+            )
+        user = UserService.get_user_by_id(user_id=request.user_id, session=session)
+        if not user:
+            logger.warning(f"User {request.user_id} not found"),
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Пользователь с ID {request.user_id} не найден"
+            )
+        if mltask.name == 'Чат с LLM':
+            if user.balance < mltask.cost:
+                raise ValueError(
+                    f"Не хватает средств. Текущий баланс: {user.balance}, "
+                    f"Сумма, необходимая для выполнения операции: {mltask.cost} "
+                )
+            user = UserService.debit_balance(request.user_id, session, mltask.name)
+            created_mltask = MLTaskCreate(id=mltask.id, 
+                                        name=mltask.name, 
+                                        cost=mltask.cost, 
+                                        description=mltask.description,
+                                        question=request.question, 
+                                        user_id=request.user_id, 
+                                        features=None
+                                        )
+        else:
+            if user.balance < mltask.cost:
+                raise ValueError(
+                    f"Не хватает средств. Текущий баланс: {user.balance}, "
+                    f"Сумма, необходимая для выполнения операции: {mltask.cost} "
+                )
+            user = UserService.debit_balance(request.user_id, session, mltask.name)
+            created_mltask = MLTaskCreate(id=mltask.id, 
+                                        name=mltask.name, 
+                                        cost=mltask.cost, 
+                                        description=mltask.description,
+                                        features=request.features, 
+                                        user_id=request.user_id,
+                                        question=None 
+                                        )
+            
+        history = MLtaskService.ml_prediction(request.user_id, session)
         logger.info(f"Massage has created: {created_mltask}")
 
-        logger.info(f"Sending task to RabbitMQ: {message}")
+        logger.info(f"Sending task to RabbitMQ: {request.message}")
         rabbit_client.send_task(created_mltask, history_id=history.id)
         return {"message": "Task sent successfully!"}
     except Exception as e:
@@ -146,12 +197,14 @@ async def send_task(message: str, question: str, mltask_id: int, user_id: int, s
         raise HTTPException(status_code=500, detail=str(e))
     
 
-@mltask_route.post("/send_task_result", response_model=Dict[str, str])
+@mltask_route.post("/send_task_result")
 def send_task_result(
     task_id: int,
     result: str,
+    status: str,
+    worker: str,
     session = Depends(get_session)
-) -> Dict[str, str]:
+):
     """
     Endpoint for sending ML task using Result.
 

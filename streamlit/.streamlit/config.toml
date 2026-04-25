@@ -1,0 +1,9 @@
+[theme]
+# Цвет фона приложения
+backgroundColor = "#F0F2F6"
+# Цвет фона карточек и виджетов
+secondaryBackgroundColor = "#E8EAED"
+# Основной цвет кнопок и акцентов
+primaryColor = "#FF4B4B"
+# Цвет текста
+textColor = "#000000"

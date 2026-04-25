@@ -2,7 +2,7 @@ import json
 import pika
 import logging
 from typing import Optional
-from src.mltask import MLTaskCreate, TaskStatus
+from src.mltask import MLTaskCreate
 
 # Устанавливаем уровень WARNING для логов pika
 logging.getLogger('pika').setLevel(logging.INFO)
@@ -74,17 +74,3 @@ class RabbitMQClient:
 # Создаем глобальный экземпляр клиента
 rabbit_client = RabbitMQClient()
 
-# def send_ml_task(task: MLTask) -> bool:
-#     """
-#     Отправляет ML задачу на обработку.
-    
-#     Args:
-#         task: Объект MLTask для обработки
-        
-#     Returns:
-#         bool: True если задача успешно отправлена, False в случае ошибки
-#     """
-#     success = rabbit_client.send_task(task)
-#     if success:
-#         task.status = TaskStatus.QUEUED
-#     return success
