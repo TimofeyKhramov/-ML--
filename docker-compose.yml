@@ -38,16 +38,14 @@ services:
       networks:
       - event-planner-network
         
-     
-  
   rabbitmq:
       image: rabbitmq:3.13.1-management-alpine
       container_name: container-rabbitmq
       restart: on-failure
       hostname: rabbitmq
       environment:
-        - RABBITMQ_DEFAULT_USER=guest1
-        - RABBITMQ_DEFAULT_PASS=guest1
+        - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER}
+        - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASS}
         - RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS=-rabbit disk_free_limit 2147483648
       ports:
         - "5672:5672"
@@ -115,9 +113,9 @@ services:
       image: postgres:16-alpine
       container_name: container-database
       environment:
-       - POSTGRES_DB=SERVICE  # ← Должно совпадать с DB_NAME
-       - POSTGRES_USER=postgres
-       - POSTGRES_PASSWORD=postgres
+       - POSTGRES_DB=${POSTGRES_DB}  
+       - POSTGRES_USER=${POSTGRES_USER}
+       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       healthcheck:
         test: ["CMD-SHELL", "pg_isready -U postgres -d SERVICE"]
         interval: 10s

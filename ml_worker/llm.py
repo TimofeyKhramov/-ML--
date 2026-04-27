@@ -15,7 +15,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(level
 logger = logging.getLogger(__name__)
 
 def _parse_response(response_text: str) -> str:
-    """Парсит ответ от LLM модели."""
+   
     full_response = ''
     for line in response_text.strip().split('\n'):
         if not line:
@@ -29,15 +29,7 @@ def _parse_response(response_text: str) -> str:
     return full_response.strip()
 
 def do_task(text: str) -> str:
-    """
-    Выполняет задачу обработки текста с помощью LLM.
-    
-    Args:
-        text: Входящий текст для обработки
-        
-    Returns:
-        str: Краткое продолжение текста (не более 10 токенов)
-    """
+  
     try:
         response = requests.post(
             OLLAMA_URL,
@@ -55,7 +47,7 @@ def do_task(text: str) -> str:
         logger.debug(f"Response content: {response.content}")
         
         if response.status_code == 404:
-            return 'Модель не найдена! Читайте README файл!'
+            return 'Модель не найдена! Необходимо подключение через Docker'
             
         if response.status_code == 200:
             return _parse_response(response.text)
