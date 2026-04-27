@@ -86,7 +86,6 @@ class MLWorker:
             bool: Признак успешности отправки результата
         """
         try:
-            print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
             response = requests.post(
                 self.RESULT_ENDPOINT,
                 params={'task_id': history_id, 'result': result, 'status': 'success', 'worker': 'worker-'+self.worker_id} #
