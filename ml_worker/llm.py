@@ -6,7 +6,7 @@ from typing import Optional
 # Константы
 OLLAMA_URL = 'http://ollama:11434/api/generate'
 MODEL_NAME = 'qwen2.5:1.5b'
-NUM_PREDICT = 30 # количество токенов для предсказания
+NUM_PREDICT = 300 # количество токенов для предсказания
 REQUEST_TIMEOUT = 300  # seconds
 
 # Настраиваем общий уровень логирования

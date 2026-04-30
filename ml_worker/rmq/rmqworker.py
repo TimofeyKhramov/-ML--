@@ -78,7 +78,7 @@ class MLWorker:
         except Exception as e:
             logger.error(f"Ошибка при закрытии соединений: {e}")
 
-    def send_result(self, history_id: int, result: str) -> bool:
+    def send_result(self, history_id: int, result: str, type_of_mltask: str, status: str) -> bool:
         """
         Отправка результатов обработки задачи на сервер.
         
@@ -88,7 +88,7 @@ class MLWorker:
         try:
             response = requests.post(
                 self.RESULT_ENDPOINT,
-                params={'task_id': history_id, 'result': result, 'status': 'success', 'worker': 'worker-'+self.worker_id} #
+                params={'task_id': history_id, 'result': result, 'status': 'success', 'worker': 'worker-'+self.worker_id, "type_of_mltask": type_of_mltask, "status": status} #
             )
             response.raise_for_status()
             return True
@@ -117,20 +117,32 @@ class MLWorker:
             data = json.loads(body.decode('utf-8'))
             history_id = data['task_id']
             if data.get('question') is not None:
+                type_of_mltask = 'Чат с LLM'
                 result = do_task(data['question'])
                 logger.info(f"Result_LLM: {result}")
 
             elif data.get('features') is not None:
                 features = data['features']  # словарь
+                type_of_mltask = 'Анализ биоткани'
                 if features is None:
                     raise ValueError("No features in message")
                 result = self.model_service.predict(features)
+                if result == '[0]':
+                    result = 'Здоровая ткань'
+                else:
+                    result = 'Опухолевая ткань'
+                    
                 logger.info(f"Result_kNN: {result}")
 
             else:
                 raise ValueError("Neither question nor features provided in message")
 
-            if self.send_result(history_id=history_id, result=str(result)):
+            if result:
+                status = 'Success'
+            else:
+                status = 'Failed'
+
+            if self.send_result(history_id=history_id, result=str(result), type_of_mltask=type_of_mltask, status=status):
                 ch.basic_ack(delivery_tag=method.delivery_tag)
                 self.retry_count = 0
                 logger.info("Task completed successfully")

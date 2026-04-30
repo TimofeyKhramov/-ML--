@@ -7,10 +7,14 @@ from typing import List, Dict
 from src.mltask import MLTaskType
 from services.crud import mltask as MLTaskService
 import logging
+from auth.hash_password import HashPassword
+# from fastapi.security import OAuth2PasswordRequestForm
+# from auth.jwt_handler import create_access_token
 
 # Configure logging
 logger = logging.getLogger(__name__)
 
+hash_password = HashPassword()
 user_route = APIRouter()
 
 
@@ -252,7 +256,47 @@ async def signup(data: User, session=Depends(get_session)) -> Dict[str, str]:
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error creating user"
         )
+    
+# @user_route.post(
+#     '/signup2',
+#     response_model=Dict[str, str],
+#     status_code=status.HTTP_201_CREATED,
+#     summary="Регистрация пользователя",
+#     description="Регистрация нового пользователя с помощью email и пароля")
+# async def signup(user: User, session=Depends(get_session)) -> Dict[str, str]:
+#     """
+#     Создание новой учетной записи пользователя.
 
+#     Аргументы:
+#         user: Данные для регистрации пользователя
+#         session: Сессия базы данных
+
+#     Возвращает:
+#         dict: Сообщение об успешной регистрации
+
+#     Исключения:
+#         HTTPException: Если пользователь уже существует
+#     """
+#     try:
+#         user_exist = UserService.get_user_by_login(user.login, session)
+        
+#         if user_exist:
+#             raise HTTPException( 
+#             status_code=status.HTTP_409_CONFLICT, 
+#             detail="User with email provided exists already.")
+        
+#         hashed_password = hash_password.create_hash(user.password)
+#         user.password = hashed_password 
+#         UserService.create_user(user, session)
+#         return {"message": "User created successfully"}
+
+#     except Exception as e:
+#         logger.error(f"Error during signup: {str(e)}")
+#         raise HTTPException(
+#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+#             detail="Error creating user"
+#         )
+    
 @user_route.post('/signin')
 async def signin(data: User, session=Depends(get_session)) -> Dict[str, object]:
 
@@ -266,6 +310,35 @@ async def signin(data: User, session=Depends(get_session)) -> Dict[str, object]:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Wrong password")
     
     return {"message": "User signed in successfully", "user_id": user.id}
+
+# @user_route.post('/signin2')
+# async def signin(form_data: OAuth2PasswordRequestForm = Depends(), session=Depends(get_session)) -> Dict[str, str]:
+#     """
+#     Аутентификация существующего пользователя.
+
+#     Аргументы:
+#         form_data: Учетные данные пользователя
+#         session: Сессия базы данных
+
+#     Возвращает:
+#         dict: Токен доступа и его тип
+
+#     Исключения:
+#         HTTPException: Если аутентификация не удалась
+#     """
+#     user_exist = UserService.get_user_by_login(form_data.username, session)
+    
+#     if user_exist is None:
+#         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User does not exist")
+    
+#     if hash_password.verify_hash(form_data.password, user_exist.password):
+#         access_token = create_access_token(user_exist.email)
+#         return {"access_token": access_token, "token_type": "Bearer"}
+    
+#     raise HTTPException(
+#         status_code=status.HTTP_401_UNAUTHORIZED,
+#         detail="Invalid details passed."
+#     )
 
 @user_route.post(
     "/add_balance",
