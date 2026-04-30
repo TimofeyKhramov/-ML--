@@ -77,6 +77,8 @@ class MLTaskHistory(SQLModel, table=True):
     user_id: int = Field(foreign_key="user.id")
     result: Optional[str] = Field(default=None)      # Результат предсказания                          # Стоимость операции
     created_at: datetime = Field(default_factory=datetime.utcnow)
+    status: str = Field(default='Completed')
+    type_of_mltask: Optional[str] = Field(default=None)
     
     # Связь с пользователем
     user: Optional[User] = Relationship(back_populates="ml_history")

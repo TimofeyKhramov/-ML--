@@ -5,7 +5,7 @@ from services.crud import user as UserService
 from typing import List, Dict, Optional, Any
 from services.crud import mltask as MLtaskService
 import logging
-from sqlmodel import Session, update
+from sqlmodel import Session, update, select
 from src.mltask import MLTaskType,  MLTaskCreate, MLTaskHistory
 from services.rm.rm import rabbit_client
 
@@ -191,7 +191,7 @@ async def send_task(request:  SendTaskRequest, session=Depends(get_session)) -> 
 
         logger.info(f"Sending task to RabbitMQ: {request.message}")
         rabbit_client.send_task(created_mltask, history_id=history.id)
-        return {"message": "Task sent successfully!"}
+        return {"message": "Task sent successfully!", "task_id": str(history.id)}
     except Exception as e:
         logger.error(f"Unexpected error in sending task: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -203,6 +203,7 @@ def send_task_result(
     result: str,
     status: str,
     worker: str,
+    type_of_mltask: str,
     session = Depends(get_session)
 ):
     """
@@ -219,7 +220,7 @@ def send_task_result(
         updated = session.exec(
             update(MLTaskHistory)
             .where(MLTaskHistory.id == task_id)
-            .values(result=result)
+            .values(result=result, type_of_mltask=type_of_mltask, status=status)
         )
         session.commit()
         
@@ -232,3 +233,26 @@ def send_task_result(
         logger.error(f"Unexpected error in sending task result: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
     
+
+@mltask_route.get("/task_result/{task_id}")
+def get_task_result(
+    task_id: int,
+    session = Depends(get_session)
+):
+    """Получить результат задачи по ID"""
+    try:
+        statement = select(MLTaskHistory).where(MLTaskHistory.id == task_id)
+        history = session.exec(statement).first()
+        
+        if not history:
+            raise HTTPException(status_code=404, detail=f"Task {task_id} not found")
+        
+        return {
+            "task_id": history.id,
+            "result": history.result,
+            "status": history.status if hasattr(history, 'status') else "completed",
+            "created_at": history.created_at.isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Error getting task result: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
