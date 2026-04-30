@@ -61,6 +61,7 @@ def login():
 
 # Функция для регистрации
 def register():
+    
     st.subheader("📝 Регистрация")
     
     with st.form("register_form"):
@@ -189,20 +190,19 @@ def profile():
         show_transaction_history()
         return
     
-    # Если показываем ввод вопроса
+
     if st.session_state.get("show_task_input", False):
         show_task_input_screen()
         return
     
-    # Отображение приветствия на 7 секунд (скрываем всё остальное)
+
     if st.session_state.show_welcome:
         if st.session_state.welcome_start_time is None:
             st.session_state.welcome_start_time = time.time()
-        
-        # Очищаем всё и показываем только приветствие
+
         st.empty()
         
-        # Показываем большое приветствие на весь экран
+    
         st.markdown(f"""
         <div style="
             display: flex;
@@ -218,7 +218,7 @@ def profile():
         </div>
         """, unsafe_allow_html=True)
         
-        # Проверяем, прошло ли 7 секунд
+
         elapsed = time.time() - st.session_state.welcome_start_time
         if elapsed >= 1:
             st.session_state.show_welcome = False
@@ -231,7 +231,7 @@ def profile():
     st.markdown(
     f"""
     <div style="display: flex; justify-content: center;">
-        <h1>🔮 Готовы к предсказаниям, {st.session_state.user_login}?</h1>
+        <h1>Пользователь: {st.session_state.user_login}</h1>
     </div>
     """,
     unsafe_allow_html=True
@@ -336,7 +336,15 @@ def profile():
 # Главная логика
 def main():
     if not st.session_state.logged_in:
-        st.title("🏦 Event Planner")
+        st.title("🏦 ML-сервис")
+        st.write(
+    """
+    <div style="text-align: center;">
+        <h1 style="font-size: 18px;">ML-сервис, в котором доступно две задачи: чат с LLM и анализ биоткани по шести признакам.</h1>
+    </div>
+    """, 
+    unsafe_allow_html=True
+)
         
         tab1, tab2 = st.tabs(["🔐 Вход", "📝 Регистрация"])
         
