@@ -1,9 +1,6 @@
 import pytest
-import sys
-import os
-
-# Добавляем корневую папку в путь
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from fastapi.testclient import TestClient
+from api import app
 from sqlmodel import SQLModel, Session, create_engine 
 from database.database import get_session 
 from sqlalchemy.pool import StaticPool
@@ -16,3 +13,15 @@ def session_fixture():
     SQLModel.metadata.create_all(engine)
     with Session(engine) as session:
         yield session
+
+@pytest.fixture(name="client") 
+def client_fixture(session: Session):  
+    def get_session_override():  
+        return session
+
+    app.dependency_overrides[get_session] = get_session_override  
+    # app.dependency_overrides[authenticate] = lambda: "user@test.ru"  
+    
+    client = TestClient(app)  
+    yield client  
+    app.dependency_overrides.clear()
