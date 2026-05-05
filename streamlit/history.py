@@ -10,7 +10,7 @@ def format_date(date_str):
 
 def show_prediction_history():
     """Отобразить историю предсказаний в виде таблицы"""
-    st.title("📜 История ML-предсказаний")
+    st.title("История ML-предсказаний")
     
     try:
         response = requests.get(
@@ -51,7 +51,7 @@ def show_prediction_history():
 def show_transaction_history():
     """Отобразить историю предсказаний в виде таблицы"""
     st.title("История транзакций")
-    print(1)
+  
     
     try:
         response = requests.get(
@@ -61,7 +61,7 @@ def show_transaction_history():
         
         if response.status_code == 200:
             history = response.json()
-            print('HIS', history)
+           
             
             if not history:
                 st.info("История предсказаний пуста")

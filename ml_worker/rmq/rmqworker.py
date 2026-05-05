@@ -127,7 +127,8 @@ class MLWorker:
                 if features is None:
                     raise ValueError("No features in message")
                 result = self.model_service.predict(features)
-                if result == '[0]':
+                print('!!!!!!!!!', result)
+                if result == [0]:
                     result = 'Здоровая ткань'
                 else:
                     result = 'Опухолевая ткань'

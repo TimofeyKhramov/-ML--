@@ -163,7 +163,7 @@ def show_medical_prediction_input():
             '<p style="font-size: 17px; margin-bottom: 0; text-align: center;"> Длина волны</p>',
             unsafe_allow_html=True
         )
-        lam = st.number_input('', key="lambda", min_value=0.0, max_value=600.0, value=0.0, step=5.0, label_visibility='hidden')
+        lam = st.number_input('', key="lambda", min_value=0.0, max_value=615.0, value=0.0, step=5.0, label_visibility='hidden')
     for i in range(10):
         st.write('')
 

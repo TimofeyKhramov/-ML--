@@ -237,7 +237,7 @@ async def signup(data: User, session=Depends(get_session)) -> Dict[str, str]:
             logger.warning(f"Signup attempt with existing login: {data.login}")
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail="User with this email already exists"
+                detail="Пользователь с введённым login уже существует"
             )
 
         user = User(
